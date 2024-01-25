@@ -3,17 +3,17 @@
  * Plugin Name: velotaxi
  * Plugin URI: https://concept24.x10.mx/
  * Description: A plugin specially designed to handle the back-end of the velotaxi website.
- * Version: 1.1.4
+ * Version: 1.2.1
  * Author: Wout
  * Author URI: https://concept24.x10.mx/
  **/
 
 
 // TODO:
-// refresh datatable wnr er een nieuwe order is
-// add functie om een rit te claimen
-// -> rit naar de table "vt_rides_in_progress"
-// pagina waar de driver zijn rit kan zien.
+// refresh datatable wnr er een nieuwe order is --
+// add functie om een rit te claimen --
+// -> rit naar de table "vt_rides_in_progress" -- 
+// pagina waar de driver zijn rit kan zien. --
 // eventueel een pagina waar de klant de status kan volgen, wanneer de chauffeur er zal zijn etc.
 // driver/klant (moet besproken worden) kan rit markeren als gedaan
 // rit klaar -> verplaats naar "vt_completed_rides"
@@ -90,23 +90,46 @@ function createDataTable() {
                 background-color: #bdc3c7; /* Gray hover effect */
             }
 
-            .show-details-btn {
-                background-color: #3498db; /* Blue button */
-                color: #fff; /* White text */
-                border: none;
-                padding: 8px 12px;
-                border-radius: 5px; /* Rounded corners for the button */
-                cursor: pointer;
-                transition: background-color 0.3s ease;
-            }
-
-            .show-details-btn:hover {
-                background-color: #2980b9; /* Darker blue on hover */
-            }
-
             /* Adjustments for rounded corners */
             .velotaxi-datatable th, .velotaxi-datatable td, .velotaxi-datatable tbody tr:hover {
                 border-radius: 0; /* Remove default border-radius */
+            }
+
+            /* Modal styles */
+            .modal {
+                display: none;
+                position: fixed;
+                z-index: 1;
+                left: 0;
+                top: 0;
+                width: 100%;
+                height: 100%;
+                overflow: auto;
+                background-color: rgb(0, 0, 0);
+                background-color: rgba(0, 0, 0, 0.4);
+            }
+
+            .modal-content {
+                background-color: #fefefe;
+                margin: 10% auto; /* Adjust the top margin to center vertically */
+                padding: 20px;
+                border: 1px solid #888;
+                width: 80%;
+                box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); /* Add a slight shadow for visual appeal */
+            }
+
+            .close {
+                color: #aaa;
+                float: right;
+                font-size: 28px;
+                font-weight: bold;
+            }
+
+            .close:hover,
+            .close:focus {
+                color: black;
+                text-decoration: none;
+                cursor: pointer;
             }
 
         </style>';
@@ -145,7 +168,16 @@ function createDataTable() {
     // Close the table
     echo '</tbody></table></div>';
 
-    // Include JavaScript for the popup and AJAX
+
+    // Modal HTML
+    echo '<div id="confirmRide" class="modal">
+            <div class="modal-content">
+                <span class="close" onclick="closeModal()">&times;</span>
+                <h2>Claim Ride?</h2>
+                <div id="modal-content-details"></div>
+                <button onclick="claimRide()">Claim</button>
+            </div>
+        </div>';
     ?>
     <script>
         document.addEventListener('DOMContentLoaded', function () {
@@ -156,11 +188,55 @@ function createDataTable() {
                     // Access data-details attribute from the clicked row
                     var details = JSON.parse(this.getAttribute('data-details'));
                     console.log('Clicked Row Data:', details);
-
-                    // Add your logic here to handle the click event
+                    openModal(details);
+                    
                 });
             });
         });
+
+        function openModal(details) {
+            var modal = document.getElementById('confirmRide');
+            var modalContentDetails = document.getElementById('modal-content-details');
+
+            // Set modal content based on details
+            modalContentDetails.innerHTML = `
+                <p><strong>Phone Number:</strong> ${details['numeric-field']}</p>
+                <p><strong>Pickup:</strong> ${details['address_1']['address_line_1']}</p>
+                <p><strong>Destination:</strong> ${details['address_2']['address_line_1']}</p>
+                <p><strong>Message:</strong> ${details['message']}</p>
+            `;
+
+            modal.style.display = 'block';
+        }
+
+        function closeModal() {
+            var modal = document.getElementById('confirmRide');
+            modal.style.display = 'none';
+        }
+
+        function claimRide() {
+            // Add your logic here to handle the "Claim" button click
+            // You can access the details variable here
+            var details = JSON.parse(document.querySelector('.table-row.active').getAttribute('data-details'));
+            console.log('Claiming Ride:', details);
+
+            // AJAX call to send data to the server
+            var xhr = new XMLHttpRequest();
+            xhr.open('POST', ajaxurl, true);
+            xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded; charset=UTF-8');
+
+            // Construct the data to send to the server
+            var data = {
+                action: 'claim_ride', // This is the WordPress action hook
+                details: JSON.stringify(details), // Send details as a JSON string
+            };
+        
+            // Send the request
+            xhr.send('data=' + JSON.stringify(data));
+
+            // Close the modal after claiming the ride
+            closeModal();
+        }
     </script>
     <?php
 
