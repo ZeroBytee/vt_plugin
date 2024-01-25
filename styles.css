@@ -1,0 +1,64 @@
+    /* Add or modify styles as needed */
+    .velotaxi-datatable-container {
+        overflow-x: auto;
+    }
+
+    .velotaxi-datatable {
+    
+        border-collapse: collapse;
+        width: 100%;
+        margin-top: 20px;
+        border: 1px solid #ddd; /* Adjust outline thickness */
+        border-radius: 8px; /* Rounded corners */
+        -moz-border-radius: 8px;
+        padding: 5px;
+    }
+
+    thead {
+        border-color: inherit;
+        display: table-header-group;
+        vertical-align: middle;
+    }
+
+    .velotaxi-datatable th, .velotaxi-datatable td {
+        padding: 10px;
+        text-align: left;
+        border: 1px solid #ddd; /* Adjust grid line thickness */
+    }
+
+    .velotaxi-datatable th {
+        background-color: #3498db; /* Blue header */
+        color: #fff; /* White text */
+        border-bottom: 1px solid #ddd; /* Adjust border-bottom thickness */
+    }
+
+    .velotaxi-datatable tbody tr:nth-child(odd) {
+        background-color: #f9f9f9; /* White row */
+    }
+
+    .velotaxi-datatable tbody tr:nth-child(even) {
+        background-color: #ddd; /* Gray row */
+    }
+
+    .velotaxi-datatable tbody tr:hover {
+        background-color: #bdc3c7; /* Gray hover effect */
+    }
+
+    .show-details-btn {
+        background-color: #3498db; /* Blue button */
+        color: #fff; /* White text */
+        border: none;
+        padding: 8px 12px;
+        border-radius: 5px; /* Rounded corners for the button */
+        cursor: pointer;
+        transition: background-color 0.3s ease;
+    }
+
+    .show-details-btn:hover {
+        background-color: #2980b9; /* Darker blue on hover */
+    }
+
+    /* Adjustments for rounded corners */
+    .velotaxi-datatable th, .velotaxi-datatable td, .velotaxi-datatable tbody tr:hover {
+        border-radius: 0; /* Remove default border-radius */
+    }
