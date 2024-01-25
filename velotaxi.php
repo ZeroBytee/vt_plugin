@@ -29,13 +29,12 @@ add_action('wp_enqueue_scripts', 'velotaxi_enqueue_scripts');
 
 
 function velotaxi_datatable_styles() {
-    wp_enqueue_style('velotaxi-datatable-styles', plugin_dir_url(__FILE__) . 'styles.css');
+    wp_enqueue_style('velotaxi', plugin_dir_url(__FILE__) . 'styles.css');
 }
 add_action('wp_enqueue_scripts', 'velotaxi_datatable_styles');
 
+// saves the user_id into a variable we can use outside of the PHP
 function enqueue_script_and_localize_data() {
-    wp_enqueue_script('velotaxi', 'velotaxi.js', array('jquery'), '1.0', true);
-
     // Get the current user ID
     $current_user = wp_get_current_user();
     $user_id = $current_user->ID;
@@ -49,7 +48,7 @@ function enqueue_script_and_localize_data() {
 }
 add_action('wp_enqueue_scripts', 'enqueue_script_and_localize_data');
 
-// Create the datatable
+// Create the datatable for new ASAP orders
 function createDataTable() {
     global $wpdb;
 
@@ -173,7 +172,7 @@ function createDataTable() {
         $message = isset($response['message']) ? $response['message'] : '';
 
         // Display values in table rows
-        echo "<tr data-details='" . esc_attr(json_encode($response)) . "'>
+        echo "<tr data-details='" . esc_attr(json_encode($entry)) . "'>
                 <td class='phone-col'>$numeric_field</td>
                 <td class='pickup-col'>$address_1</td>
                 <td class='destination-col'>$address_2</td>
@@ -203,8 +202,8 @@ function createDataTable() {
                 row.addEventListener('click', function () {
                     // Access data-details attribute from the clicked row
                     var details = JSON.parse(this.getAttribute('data-details'));
-                    console.log('Clicked Row Data:', details);
-                    openModal(details);
+                    console.log('Clicked Row Data:', details['response']);
+                    openModal(details['response']);
                     
                 });
             });
@@ -231,10 +230,8 @@ function createDataTable() {
         }
 
         function claimRide() {
-            // Add your logic here to handle the "Claim" button click
-            // You can access the details variable here
+            // grabs all the info about the chosen ride
             var details = JSON.parse(document.querySelector('.table-row.active').getAttribute('data-details'));
-            console.log('Claiming Ride:', details);
 
             // AJAX call to send data to the server
             var xhr = new XMLHttpRequest();
@@ -243,8 +240,9 @@ function createDataTable() {
 
             // Construct the data to send to the server
             var data = {
-                action: 'claim_ride', // This is the WordPress action hook
+                action: 'claimRide_callback',
                 details: JSON.stringify(details), // Send details as a JSON string
+                user: claim_ride_vars.user_id, // Include the user ID
             };
         
             // Send the request
@@ -254,7 +252,60 @@ function createDataTable() {
             closeModal();
         }
     </script>
+
     <?php
+
+function claimRide_callback() {
+    check_ajax_referer('claim_ride_nonce', 'security');
+
+    if (isset($_POST['data'])) {
+        $data = json_decode(stripslashes($_POST['data']), true);
+        $entry = json_decode(stripslashes($_POST['entry']), true);
+
+        // Extract details from the data
+        $details = isset($data['details']) ? $data['details'] : array();
+
+        // Move the row from 'fluentform_submissions' to 'vt_rides_in_progress'
+        move_row_to_rides_in_progress($details, $entry);
+
+        // Handle other logic as needed...
+
+        wp_send_json_success(array('message' => 'Ride claimed successfully.'));
+    } else {
+        wp_send_json_error(array('message' => 'Invalid data.'));
+    }
+}
+
+function move_row_to_rides_in_progress($details, $entry) {
+    global $wpdb;
+
+    // Extract relevant data from $details (adjust based on your actual data structure)
+    $numeric_field = isset($details['numeric-field']) ? $details['numeric-field'] : '';
+    $address_1 = isset($details['address_1']['address_line_1']) ? $details['address_1']['address_line_1'] : '';
+    $address_2 = isset($details['address_2']['address_line_1']) ? $details['address_2']['address_line_1'] : '';
+    $message = isset($details['message']) ? $details['message'] : '';
+    $gdpr = isset($details['gdpr-agreement']) ? $details['gdpr-agreement'] : '';
+
+    // Prepare data for insertion
+    $insert_data = array(
+        'numeric_field' => $numeric_field,
+        'address_1' => $address_1,
+        'address_2' => $address_2,
+        'message' => $message,
+        'gdpr' => $gdpr,    
+        // Add other columns as needed...
+    );
+
+    // Destination table name with the new prefix
+    $destination_table = $wpdb->prefix . 'rides_in_progress';
+
+    // Insert the data into the destination table
+    $wpdb->insert($destination_table, $insert_data);
+
+    // Delete the row from the source table
+    $source_table = $wpdb->prefix . 'fluentform_submissions';
+    $wpdb->delete($source_table, array('column_name' => $value_to_match));
+}
 
     return ob_get_clean(); // Return the buffered content
 }
