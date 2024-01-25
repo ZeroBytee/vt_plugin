@@ -33,6 +33,22 @@ function velotaxi_datatable_styles() {
 }
 add_action('wp_enqueue_scripts', 'velotaxi_datatable_styles');
 
+function enqueue_script_and_localize_data() {
+    wp_enqueue_script('velotaxi', 'velotaxi.js', array('jquery'), '1.0', true);
+
+    // Get the current user ID
+    $current_user = wp_get_current_user();
+    $user_id = $current_user->ID;
+
+    // Localize script with user ID and other variables
+    wp_localize_script('velotaxi', 'claim_ride_vars', array(
+        'nonce' => wp_create_nonce('claim_ride_nonce'),
+        'ajax_url' => admin_url('admin-ajax.php'),
+        'user_id' => $user_id,
+    ));
+}
+add_action('wp_enqueue_scripts', 'enqueue_script_and_localize_data');
+
 // Create the datatable
 function createDataTable() {
     global $wpdb;
