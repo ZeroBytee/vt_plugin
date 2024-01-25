@@ -214,34 +214,6 @@ function createDataTable() {
             modal.style.display = 'none';
         }
 
-        function claimRide() {
-            // Add your logic here to handle the "Claim" button click
-            // You can access the details variable here
-            var details = JSON.parse(document.querySelector('.table-row.active').getAttribute('data-details'));
-            console.log('Claiming Ride:', details);
-
-            // AJAX call to send data to the server
-            var xhr = new XMLHttpRequest();
-            xhr.open('POST', ajaxurl, true);
-            xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded; charset=UTF-8');
-
-            // Construct the data to send to the server
-            var data = {
-                action: 'claim_ride', // This is the WordPress action hook
-                details: JSON.stringify(details), // Send details as a JSON string
-            };
         
-            // Send the request
-            xhr.send('data=' + JSON.stringify(data));
-
-            // Close the modal after claiming the ride
-            closeModal();
-        }
-    </script>
-    <?php
-
-    return ob_get_clean(); // Return the buffered content
-}
-
 // Register the shortcode
 add_shortcode('velotaxi_neworders', 'createDataTable');
