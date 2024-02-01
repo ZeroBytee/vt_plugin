@@ -1,14 +1,16 @@
 <?php
 // AJAX callback logic
 function claimRide_callback() {
-    // Extract details parameter
-    $details = json_decode(stripslashes($_POST['details']), true);
+    // Verify nonce
+    if (!isset($_POST['nonce']) || !wp_verify_nonce($_POST['nonce'], 'claim_ride_nonce')) {
+        wp_send_json_error(array('message' => 'Invalid nonce.'));
+    }
 
-    // Other logic for claiming the ride
+    $details = json_decode(stripslashes($_POST['details']), true);
     move_row_to_rides_in_progress($details);
 
-    // Send a success response
     wp_send_json_success(array('message' => 'Ride claimed successfully.'));
+    
 }
 add_action('wp_ajax_claimRide_callback', 'claimRide_callback');
 
@@ -33,26 +35,17 @@ function move_row_to_rides_in_progress($details) {
         // Add other columns as needed...
     );
 
-    // Destination table name with the new prefix
+    // insert into new table
     $destination_table = $wpdb->prefix . 'rides_in_progress';
-
-    // Insert the data into the destination table
     $wpdb->insert($destination_table, $insert_data);
 
-    // Delete the row from the source table based on specific columns
-    $source_table = $wpdb->prefix . 'fluentform_submissions';
-    
-    // Prepare and execute the SQL query for deletion
+    // delete from old table
+    $table_name = $wpdb->prefix . 'fluentform_submissions';
     $wpdb->delete(
-        $source_table,
+        $table_name,
         array(
-            'numeric_field' => $numeric_field,
-            'address_1' => json_encode(array('address_line_1' => $address_1)),
-            'address_2' => json_encode(array('address_line_1' => $address_2)),
-            'message' => $message,
-            // Add other fields as needed...
+            'response' => json_encode($details),
         ),
-        array('%s', '%s', '%s', '%s') // Data format for the WHERE clause
+        array('%s') // Data format for the WHERE clause
     );
-
 }
