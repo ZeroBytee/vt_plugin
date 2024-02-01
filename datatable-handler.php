@@ -49,7 +49,7 @@ function createDataTable() {
             }
 
             .velotaxi-datatable tbody tr:nth-child(odd) {
-                background-color: #f9f9f9; /* White row */
+                background-color: #ffffff; /* White row */
             }
 
             .velotaxi-datatable tbody tr:nth-child(even) {
