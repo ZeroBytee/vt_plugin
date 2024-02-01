@@ -46,7 +46,8 @@ function claimRide(details) {
     var data = {
         action: 'claimRide_callback',
         details: JSON.stringify(details),
-        user: claim_ride_vars.user_id
+        user: claim_ride_vars.user_id,
+        nonce: claim_ride_vars.nonce
     };
 
     jQuery.post(ajaxurl, data, function(response) {
@@ -54,6 +55,7 @@ function claimRide(details) {
 
         if (response.success) {
             closeModal();
+            showNotification("Ride claimed successfully", "success");
         } else {
             console.error('Claiming ride failed');
         }
