@@ -3,7 +3,7 @@
  * Plugin Name: velotaxi
  * Plugin URI: https://concept24.x10.mx/
  * Description: A plugin specially designed to handle the back-end of the velotaxi website.
- * Version: 1.2.1
+ * Version: 1.3.2
  * Author: Wout
  * Author URI: https://concept24.x10.mx/
  **/
@@ -22,31 +22,35 @@
 
 
 // adds the CSS stylesheet
+// Enqueue scripts and styles
+// Enqueue scripts and styles
 function velotaxi_enqueue_scripts() {
+    // Enqueue jQuery
     wp_enqueue_script('jquery');
-}
-add_action('wp_enqueue_scripts', 'velotaxi_enqueue_scripts');
 
+    // Enqueue your main script
+    wp_enqueue_script('velotaxi', plugin_dir_url(__FILE__) . 'velotaxi.php', array('jquery'), '1.0', true);
 
-function velotaxi_datatable_styles() {
-    wp_enqueue_style('velotaxi', plugin_dir_url(__FILE__) . 'styles.css');
-}
-add_action('wp_enqueue_scripts', 'velotaxi_datatable_styles');
-
-// saves the user_id into a variable we can use outside of the PHP
-function enqueue_script_and_localize_data() {
-    // Get the current user ID
+    // Localize script with user ID and other variables
     $current_user = wp_get_current_user();
     $user_id = $current_user->ID;
 
-    // Localize script with user ID and other variables
+    $nonce = wp_create_nonce('claim_ride_nonce');
+
     wp_localize_script('velotaxi', 'claim_ride_vars', array(
-        'nonce' => wp_create_nonce('claim_ride_nonce'),
+        'nonce' => $nonce,
         'ajax_url' => admin_url('admin-ajax.php'),
         'user_id' => $user_id,
     ));
+
+    // Add the inline script outside the echo block
+    wp_add_inline_script('velotaxi', '
+        var ajaxurl = "' . admin_url('admin-ajax.php') . '";
+        var nonce = "' . $nonce . '";
+    ');
 }
-add_action('wp_enqueue_scripts', 'enqueue_script_and_localize_data');
+add_action('wp_enqueue_scripts', 'velotaxi_enqueue_scripts');
+add_action('wp_enqueue_scripts', 'velotaxi_enqueue_scripts');
 
 // Create the datatable for new ASAP orders
 function createDataTable() {
@@ -172,7 +176,7 @@ function createDataTable() {
         $message = isset($response['message']) ? $response['message'] : '';
 
         // Display values in table rows
-        echo "<tr data-details='" . esc_attr(json_encode($entry)) . "'>
+        echo "<tr data-details='" . esc_attr(json_encode($response)) . "'>
                 <td class='phone-col'>$numeric_field</td>
                 <td class='pickup-col'>$address_1</td>
                 <td class='destination-col'>$address_2</td>
@@ -190,93 +194,146 @@ function createDataTable() {
                 <span class="close" onclick="closeModal()">&times;</span>
                 <h2>Claim Ride?</h2>
                 <div id="modal-content-details"></div>
-                <button onclick="claimRide()">Claim</button>
+                <button id="claim-button" onclick="claimRide()">Claim</button>
             </div>
         </div>';
-    ?>
-    <script>
-        document.addEventListener('DOMContentLoaded', function () {
-            var rows = document.querySelectorAll('.velotaxi-datatable tbody tr');
 
-            rows.forEach(function (row) {
-                row.addEventListener('click', function () {
-                    // Access data-details attribute from the clicked row
-                    var details = JSON.parse(this.getAttribute('data-details'));
-                    console.log('Clicked Row Data:', details['response']);
-                    openModal(details['response']);
-                    
+
+?>
+    <script>
+    document.addEventListener('DOMContentLoaded', function () {
+        var rows = document.querySelectorAll('.velotaxi-datatable tbody tr');
+    
+        rows.forEach(function (row) {
+            row.addEventListener('click', function () {
+                // Remove the "active" class from all rows
+                rows.forEach(function (r) {
+                    r.classList.remove('active');
                 });
+            
+                // Access data-details attribute from the clicked row and add active class
+                //var details2 = JSON.parse(document.querySelector('.table-row.active').getAttribute('data-details'));
+                if (this) {
+                    this.classList.add('active');
+                    var details = JSON.parse(this.getAttribute('data-details'));
+                    console.log('Clicked Row Data:', details);
+                    console.log('Nonce Value:', claim_ride_vars.nonce);
+                    openModal(details);
+                } else {
+                    console.error('Clicked row not found');
+                }
             });
         });
+    });
 
-        function openModal(details) {
-            var modal = document.getElementById('confirmRide');
-            var modalContentDetails = document.getElementById('modal-content-details');
+    function openModal(details) {
+        var modal = document.getElementById('confirmRide');
+        var modalContentDetails = document.getElementById('modal-content-details');
+        var buttonContentDetails = document.getElementById('claim-button');
+        // Set modal content based on details
+        modalContentDetails.innerHTML = 
+            '<p><strong>Phone Number:</strong> ' + details['numeric-field'] + '</p>' +
+            '<p><strong>Pickup:</strong> ' + details['address_1']['address_line_1'] + '</p>' +
+            '<p><strong>Destination:</strong> ' + details['address_2']['address_line_1'] + '</p>' +
+            '<p><strong>Message:</strong> ' + details['message'] + '</p>';
+    
+        buttonContentDetails.onclick = function() { claimRide(details) };
+    
+        modal.style.display = 'block';
+    }
 
-            // Set modal content based on details
-            modalContentDetails.innerHTML = `
-                <p><strong>Phone Number:</strong> ${details['numeric-field']}</p>
-                <p><strong>Pickup:</strong> ${details['address_1']['address_line_1']}</p>
-                <p><strong>Destination:</strong> ${details['address_2']['address_line_1']}</p>
-                <p><strong>Message:</strong> ${details['message']}</p>
-            `;
+    function closeModal() {
+        var modal = document.getElementById('confirmRide');
+        modal.style.display = 'none';
+    }
 
-            modal.style.display = 'block';
-        }
-
-        function closeModal() {
-            var modal = document.getElementById('confirmRide');
-            modal.style.display = 'none';
-        }
-
-        function claimRide() {
-            // grabs all the info about the chosen ride
-            var details = JSON.parse(document.querySelector('.table-row.active').getAttribute('data-details'));
-
-            // AJAX call to send data to the server
-            var xhr = new XMLHttpRequest();
-            xhr.open('POST', ajaxurl, true);
-            xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded; charset=UTF-8');
-
-            // Construct the data to send to the server
-            var data = {
-                action: 'claimRide_callback',
-                details: JSON.stringify(details), // Send details as a JSON string
-                user: claim_ride_vars.user_id, // Include the user ID
-            };
-        
-            // Send the request
-            xhr.send('data=' + JSON.stringify(data));
-
-            // Close the modal after claiming the ride
+    function claimRide(details) {
+        var nonce = claim_ride_vars.nonce;
+        var ajaxurl = claim_ride_vars.ajax_url;
+    
+        // Construct the data to send to the server
+        var data = {
+            action: 'claimRide_callback',
+            details: details,
+            user: claim_ride_vars.user_id,
+            security: nonce
+        };
+    
+        // Convert data to URL-encoded format
+        var formData = new URLSearchParams();
+        Object.keys(data).forEach(key => {
+            formData.append(key, JSON.stringify(data[key]));
+        });
+    
+        // AJAX call to send data to the server using fetch
+        fetch(ajaxurl, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: formData,
+        })
+        .then(response => {
+            // Log the response for debugging
+            console.log('Response:', response);
+            return response.json();
+        })
+        .then(result => {
+            console.log('Result:', result);
+            if (result.success) {
+                closeModal();
+            } else {
+                console.error('Claim Ride Failed:', result.data ? result.data.message : 'Unknown error');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
             closeModal();
-        }
+        });
+    }
+    
+ 
+        //function claimRide(details) {
+        //    var nonce = claim_ride_vars.nonce;
+        //    var ajaxurl = claim_ride_vars.ajax_url;
+    //
+        //    // AJAX call to send data to the server
+        //    var xhr = new XMLHttpRequest();
+        //    xhr.open('POST', ajaxurl, true);
+        //    //xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+    //
+        //    // Construct the data to send to the server
+        //    var data = 'action=claimRide_callback' +
+        //               '&details=' + encodeURIComponent(JSON.stringify(details)) +
+        //               '&user=' + encodeURIComponent(claim_ride_vars.user_id) +
+        //               '&security=' + nonce;
+    //
+        //    // Send the request
+        //    xhr.send(data);
+    //
+        //    // Close the modal after claiming the ride
+        //    closeModal();
+        //}
+        
     </script>
 
-    <?php
+
+<?php
 
 function claimRide_callback() {
-    check_ajax_referer('claim_ride_nonce', 'security');
+    $nonce = isset($_POST['security']) ? $_POST['security'] : '';
 
-    if (isset($_POST['data'])) {
-        $data = json_decode(stripslashes($_POST['data']), true);
-        $entry = json_decode(stripslashes($_POST['entry']), true);
-
-        // Extract details from the data
-        $details = isset($data['details']) ? $data['details'] : array();
-
-        // Move the row from 'fluentform_submissions' to 'vt_rides_in_progress'
-        move_row_to_rides_in_progress($details, $entry);
-
-        // Handle other logic as needed...
-
-        wp_send_json_success(array('message' => 'Ride claimed successfully.'));
-    } else {
-        wp_send_json_error(array('message' => 'Invalid data.'));
+    if (!wp_verify_nonce($nonce, 'claim_ride_nonce')) {
+        wp_send_json_error(array('message' => 'Nonce verification failed.'));
     }
+
+    // Simplified logic for debugging
+    wp_send_json_success(array('message' => 'Ride claimed successfully.'));
 }
 
-function move_row_to_rides_in_progress($details, $entry) {
+
+
+function move_row_to_rides_in_progress($details) {
     global $wpdb;
 
     // Extract relevant data from $details (adjust based on your actual data structure)
@@ -304,7 +361,7 @@ function move_row_to_rides_in_progress($details, $entry) {
 
     // Delete the row from the source table
     $source_table = $wpdb->prefix . 'fluentform_submissions';
-    $wpdb->delete($source_table, array('column_name' => $value_to_match));
+    $wpdb->delete($source_table, array('response' => $details));
 }
 
     return ob_get_clean(); // Return the buffered content
