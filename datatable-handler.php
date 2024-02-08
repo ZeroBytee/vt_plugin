@@ -13,10 +13,27 @@ function claimCheck($user_id) {
 
 
 function createDataTable() {
-    if (claimCheck(wp_get_current_user())) {
-        // User has claimed ride, show different content
+    $current_user = wp_get_current_user();
+    $user_id = $current_user->ID;
+
+    $claimed_ride = claimCheck($user_id);
+
+    if ($claimed_ride) {
+        global $wpdb;
+    
+        $table_name = $wpdb->prefix . 'rides_in_progress';
+        $data = $wpdb->get_row($wpdb->prepare("SELECT * FROM $table_name WHERE user_id = %d", $user_id), ARRAY_A);
+
         ob_start();
-        echo '<p>You already have a claimed ride. Display alternative content here.</p>';
+        
+        echo '<div id="claimed-ride-details">';
+        echo '<p><strong>Ride ID:</strong> ' . esc_html($data['id']) . '</p>';
+        echo '<p><strong>Phone Number:</strong> ' . esc_html($data['numeric_field']) . '</p>';
+        echo '<p><strong>Pickup:</strong> ' . esc_html($data['address_1']) . '</p>';
+        echo '<p><strong>Destination:</strong> ' . esc_html($data['address_2']) . '</p>';
+        echo '<p><strong>Message:</strong> ' . esc_html($data['message']) . '</p>';
+        echo '</div>';
+
         return ob_get_clean();
     } else {
 
