@@ -6,16 +6,39 @@ function claimRide_callback() {
         wp_send_json_error(array('message' => 'Invalid nonce.'));
     }
 
-    $details = json_decode(stripslashes($_POST['details']), true);
-    move_row_to_rides_in_progress($details);
+    
 
-    wp_send_json_success(array('message' => 'Ride claimed successfully.'));
+    $details = json_decode(stripslashes($_POST['details']), true);
+    $user_id = json_decode(stripslashes($_POST['user']), true);
+
+    // Check if a row with the same user_id already exists
+    if ($user_id) {
+        $row_exists = check_row_exists($user_id);
+        if ($row_exists) {
+            // Handle case where the row already exists
+            wp_send_json_error(array('message' => 'Ride not claimed. User already has a ride in progress.'));
+        } else {
+            move_row_to_rides_in_progress($details, $user_id);
+            wp_send_json_success(array('message' => 'Ride claimed successfully.'));
+        }
+    }
     
 }
 add_action('wp_ajax_claimRide_callback', 'claimRide_callback');
 
+// Function to check if a row with the given user_id already exists
+function check_row_exists($user_id) {
+    global $wpdb;
+    
+    $table_name = $wpdb->prefix . 'rides_in_progress';
+    $query = $wpdb->prepare("SELECT user_id FROM $table_name WHERE user_id = %d", $user_id);
+    $existing_user_id = $wpdb->get_var($query);
 
-function move_row_to_rides_in_progress($details) {
+    return !empty($existing_user_id);
+}
+
+
+function move_row_to_rides_in_progress($details, $user) {
     global $wpdb;
 
     // Extract relevant data from $details (adjust based on your actual data structure)
@@ -32,7 +55,7 @@ function move_row_to_rides_in_progress($details) {
         'address_2' => $address_2,
         'message' => $message,
         'gdpr' => $gdpr,
-        // Add other columns as needed...
+        'user_id' => $user,
     );
 
     // insert into new table

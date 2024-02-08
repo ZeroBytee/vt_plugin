@@ -40,6 +40,10 @@ function closeModal() {
     modal.style.display = 'none';
 }
 
+function showNotification(message, type = "success") {
+    createAlert(message, type);
+}
+
 function claimRide(details) {
     var ajaxurl = claim_ride_vars.ajax_url;
 
@@ -55,9 +59,41 @@ function claimRide(details) {
 
         if (response.success) {
             closeModal();
-            showNotification("Ride claimed successfully", "success");
+            createAlert("Succesfully claimed the ride!", "success");
         } else {
-            console.error('Claiming ride failed');
+            console.error(response.data['message']);
         }
     });
 }
+
+function createAlert(message, type) {
+    // Create a new div element
+    var alertDiv = document.createElement("div");
+  
+    // Set class based on the alert type (e.g., 'success', 'info', 'warning', 'error')
+    alertDiv.className = "alert " + type;
+  
+    // Set the alert message
+    alertDiv.innerHTML = '<span class="closebtn" onclick="closeAlert(this)">&times;</span>' + message;
+  
+    // Append the alert to the container
+    document.getElementById("alert-container").appendChild(alertDiv);
+  
+    // Automatically remove the alert after a few seconds (adjust as needed)
+    setTimeout(function () {
+      closeAlert(alertDiv.querySelector(".closebtn"));
+    }, 8000);
+  }
+  
+  function closeAlert(closeButton) {
+    // Get the parent of <span class="closebtn"> (<div class="alert">)
+    var alertDiv = closeButton.parentElement;
+  
+    // Set the opacity of div to 0 (transparent)
+    alertDiv.style.opacity = "0";
+  
+    // Hide the div after 600ms (the same amount of milliseconds it takes to fade out)
+    setTimeout(function () {
+      alertDiv.style.display = "none";
+    }, 1000);
+  }
