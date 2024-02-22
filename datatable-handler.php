@@ -1,5 +1,4 @@
 <?php
-// Create the datatable for new ASAP orders
 
 function claimCheck($user_id) {
     global $wpdb;
@@ -36,7 +35,6 @@ function createDataTable() {
 
         return ob_get_clean();
     } else {
-
         global $wpdb;
 
         // Get table name
@@ -44,9 +42,10 @@ function createDataTable() {
 
         // Get data from the database
         $data = $wpdb->get_results(
-            $wpdb->prepare("SELECT * FROM $table_name WHERE form_id = %d", 3),
+            $wpdb->prepare("SELECT * FROM $table_name WHERE form_id = %d", 6),
             ARRAY_A
         );
+
         // Start output buffering
         ob_start();
 
@@ -177,6 +176,25 @@ function createDataTable() {
                   color: black;
                 }
 
+                /* Add or modify styles as needed */
+                .velotaxi-datatable tbody tr.claimed-by-you {
+                    background-color: #4CAF50 !important; /* Green background for claimed by you */
+                    color: white;
+                }
+                
+                .velotaxi-datatable tbody tr.active {
+                    background-color: #FF0000; /* Red background for claimed by others */
+                    color: white;
+                }
+                
+                .velotaxi-datatable tbody tr:nth-child(odd) {
+                    background-color: #ddd; /* Gray background for unclaimed rows */
+                }
+                
+                .velotaxi-datatable tbody tr:nth-child(even) {
+                    background-color: #ffffff; /* White background for unclaimed rows */
+                }
+
             </style>';
 
         echo '<div id="alert-container"></div>';
@@ -186,7 +204,8 @@ function createDataTable() {
                 <table class="velotaxi-datatable">
                     <thead>
                         <tr>
-                            <th class="phone-col">Phone number</th>
+                            <th class="service-col">Service Type</th>
+                            <th class="name-col">First name</th>
                             <th class="pickup-col">Pickup</th>
                             <th class="destination-col">Destination</th>
                             <th class="message-col">Message</th>
@@ -198,14 +217,29 @@ function createDataTable() {
         foreach ($data as $entry) {
             $response = json_decode($entry['response'], true);
 
-            $numeric_field = $response['numeric-field'];
-            $address_1 = isset($response['address_1']['address_line_1']) ? $response['address_1']['address_line_1'] : '';
-            $address_2 = isset($response['address_2']['address_line_1']) ? $response['address_2']['address_line_1'] : '';
-            $message = isset($response['message']) ? $response['message'] : '';
+            $numeric_field = $response['input_text']; // Change this to the correct field
+            $service_type = $response['service']; // Change this to the correct field
+            $first_name = $response['names']['first_name']; // Change this to the correct field
+
+            // Determine from and to places based on service type
+            if ($service_type === "Single City Ride") {
+                $address_1 = isset($response['from_place']) ? $response['from_place'] : ''; // Check if 'from_place' exists
+                $address_2 = isset($response['to_place']) ? $response['to_place'] : ''; // Check if 'to_place' exists
+            } elseif ($service_type === "Reserve timeslot") {
+                $address_1 = isset($response['starting_place']) ? $response['starting_place'] : 'N/A'; // Check if 'starting_place' exists
+                $address_2 = 'N/A';
+            } else {
+                // For other services, set to N/A
+                $address_1 = 'N/A';
+                $address_2 = 'N/A';
+            }
+
+            $message = $response['more_info']; // Change this to the correct field
 
             // Display values in table rows
             echo "<tr data-details='" . esc_attr(json_encode($response)) . "'>
-                    <td class='phone-col'>$numeric_field</td>
+                    <td class='service-col'>$service_type</td>
+                    <td class='name-col'>$first_name</td>
                     <td class='pickup-col'>$address_1</td>
                     <td class='destination-col'>$address_2</td>
                     <td class='message-col'>$message</td>
@@ -214,7 +248,6 @@ function createDataTable() {
 
         // Close the table
         echo '</tbody></table></div>';
-
 
         // Modal HTML
         echo '<div id="confirmRide" class="modal">
@@ -227,7 +260,6 @@ function createDataTable() {
             </div>';
 
         return ob_get_clean(); // Return the buffered content
-
     }
 }
 

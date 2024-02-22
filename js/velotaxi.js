@@ -24,16 +24,34 @@ function openModal(details) {
     var modalContentDetails = document.getElementById('modal-content-details');
     var buttonContentDetails = document.getElementById('claim-button');
 
+    var phoneNumber = details['input_text'];
+    var service = details['service'];
+    var startingPlace = details['starting_place'] || details['from_place'];
+    var toPlace = details['to_place'] || "N/A"; // Default value for to_place
+    var fromPlaceLabel = service === 'Reserve timeslot' ? 'Starting Place' : 'From Place';
+
+    // Additional fields based on service type
+    var additionalFields = '';
+    if (service === 'Single City Ride') {
+        additionalFields += '<p><strong>When:</strong> ' + details['when'] + '</p>';
+    } else if (service === 'Reserve timeslot') {
+        additionalFields += '<p><strong>From Date:</strong> ' + details['from_date'] + '</p>' +
+                            '<p><strong>To Date:</strong> ' + details['to_date'] + '</p>';
+    }
+
     modalContentDetails.innerHTML = 
-        '<p><strong>Phone Number:</strong> ' + details['numeric-field'] + '</p>' +
-        '<p><strong>Pickup:</strong> ' + details['address_1']['address_line_1'] + '</p>' +
-        '<p><strong>Destination:</strong> ' + details['address_2']['address_line_1'] + '</p>' +
-        '<p><strong>Message:</strong> ' + details['message'] + '</p>';
+        '<p><strong>Phone Number:</strong> ' + phoneNumber + '</p>' +
+        '<p><strong>Service:</strong> ' + service + '</p>' +
+        '<p><strong>' + fromPlaceLabel + ':</strong> ' + startingPlace + '</p>' +
+        '<p><strong>To Place:</strong> ' + toPlace + '</p>' +
+        additionalFields +  // Additional fields based on service type
+        '<p><strong>Message:</strong> ' + details['more_info'] + '</p>';
 
     buttonContentDetails.onclick = function() { claimRide(details) };
 
     modal.style.display = 'block';
 }
+
 
 function closeModal() {
     var modal = document.getElementById('confirmRide');
@@ -59,7 +77,9 @@ function claimRide(details) {
 
         if (response.success) {
             closeModal();
-            createAlert("Succesfully claimed the ride!", "success");
+            createAlert("Successfully claimed the ride!", "success");
+            // Change the color of the claimed row to green
+            document.querySelector('.velotaxi-datatable tbody tr.active').classList.add('claimed-by-you');
         } else {
             console.error(response.data['message']);
         }
@@ -83,9 +103,9 @@ function createAlert(message, type) {
     setTimeout(function () {
       closeAlert(alertDiv.querySelector(".closebtn"));
     }, 8000);
-  }
-  
-  function closeAlert(closeButton) {
+}
+
+function closeAlert(closeButton) {
     // Get the parent of <span class="closebtn"> (<div class="alert">)
     var alertDiv = closeButton.parentElement;
   
@@ -96,4 +116,4 @@ function createAlert(message, type) {
     setTimeout(function () {
       alertDiv.style.display = "none";
     }, 1000);
-  }
+}

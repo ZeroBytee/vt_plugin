@@ -11,9 +11,12 @@
 function velotaxi_enqueue_scripts() {
     // Enqueue jQuery
     wp_enqueue_script('jquery');
+    wp_enqueue_script('jquery-ui-core');
+    wp_enqueue_script('jquery-effects-core');
+    wp_enqueue_script('jquery-ui-dialog');
 
     // Enqueue your main script
-    wp_enqueue_script('velotaxi', plugin_dir_url(__FILE__) . 'js/velotaxi.js', array('jquery'), '1.0', true);
+    wp_enqueue_script('velotaxi', plugin_dir_url(__FILE__) . 'js/velotaxi.js', array('jquery', 'jquery-ui-core', 'jquery-effects-core', 'jquery-ui-dialog'), '1.0', true);
 
     // Localize script with user ID and other variables
     $current_user = wp_get_current_user();
@@ -31,21 +34,6 @@ function velotaxi_enqueue_scripts() {
     wp_add_inline_script('velotaxi', '
         var ajaxurl = "' . admin_url('admin-ajax.php') . '";
         var nonce = "' . $nonce . '";
-
-        // Function to display a notification
-        function showNotification(message, type = "success") {
-            var notification = document.createElement("div");
-            notification.className = "velotaxi-notification " + type;
-            notification.innerHTML = message;
-
-            // Append the notification to the body
-            document.body.appendChild(notification);
-
-            // Automatically remove the notification after a few seconds (adjust as needed)
-            setTimeout(function() {
-                document.body.removeChild(notification);
-            }, 5000);
-        }
     ');
 }
 add_action('wp_enqueue_scripts', 'velotaxi_enqueue_scripts');
