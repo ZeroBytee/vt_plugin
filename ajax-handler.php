@@ -6,8 +6,6 @@ function claimRide_callback() {
         wp_send_json_error(array('message' => 'Invalid nonce.'));
     }
 
-    
-
     $details = json_decode(stripslashes($_POST['details']), true);
     $user_id = json_decode(stripslashes($_POST['user']), true);
 

@@ -90,7 +90,7 @@ function createDataTable() {
                 }
 
                 .velotaxi-datatable tbody tr:nth-child(even) {
-                    background-color: #ddd; /* Gray row */
+                    background-color: #ffffff; /* Gray row */ #ddd old 
                 }
 
                 .velotaxi-datatable tbody tr:hover {
@@ -176,6 +176,12 @@ function createDataTable() {
                   color: black;
                 }
 
+                /* Add or modify styles as needed */
+                .velotaxi-datatable tbody tr.claimed-by-you {
+                    background-color: #4CAF50 !important; /* Green background for claimed by you */
+                    color: white;
+                }
+
                 .velotaxi-datatable tbody tr.claimed-by-you {
                     background-color: #4CAF50 !important; /* Green background for claimed by you */
                     color: white;
@@ -227,6 +233,12 @@ function createDataTable() {
         foreach ($data as $entry) {
             $response = json_decode($entry['response'], true);
 
+             // Determine if the row is claimed by the current user
+            $claimed_by_user = $entry['claimed_by'] == $user_id;
+                
+            // Set classes based on claimed status
+            $row_classes = $claimed_by_user ? 'claimed-by-you' : ($entry['claimed_by'] ? 'claimed-by-others' : 'unclaimed');
+
             $numeric_field = $response['input_text']; // Change this to the correct field
             $service_type = $response['service']; // Change this to the correct field
             $first_name = $response['names']['first_name']; // Change this to the correct field
@@ -246,8 +258,7 @@ function createDataTable() {
 
             $message = $response['more_info']; // Change this to the correct field
 
-            // Display values in table rows
-            echo "<tr  data-details='" . esc_attr(json_encode($response)) . "'>
+            echo "<tr id='vt-row-test' class='" . esc_attr($row_classes) . "' data-details='" . esc_attr(json_encode($response)) . "'>
                     <td class='service-col'>$service_type</td>
                     <td class='name-col'>$first_name</td>
                     <td class='pickup-col'>$address_1</td>
