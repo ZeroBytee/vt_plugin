@@ -90,7 +90,7 @@ function createDataTable() {
                 }
 
                 .velotaxi-datatable tbody tr:nth-child(even) {
-                    background-color: #ddd; /* Gray row */
+                    background-color: #ffffff; /* Gray row */ #ddd old 
                 }
 
                 .velotaxi-datatable tbody tr:hover {
@@ -102,7 +102,6 @@ function createDataTable() {
                     border-radius: 0; /* Remove default border-radius */
                 }
 
-                /* Modal styles */
                 .modal {
                     display: none;
                     position: fixed;
@@ -113,20 +112,18 @@ function createDataTable() {
                     height: 100%;
                     overflow: auto;
                     background-color: rgba(0, 0, 0, 0.4);
-                    margin-left: auto;
-                    margin-right: auto;
                 }
-
+            
                 .modal-content {
                     background-color: #fefefe;
-                    margin: 10% auto; /* Adjust the top margin to center vertically */
+                    margin: 10% auto;
                     padding: 20px;
                     border: 1px solid #888;
-                    width: 60%; /* Adjust the width as needed */
-                    max-width: 600px; /* Add a maximum width for larger screens */
+                    width: 80%; /* Adjusted width for better responsiveness */
+                    max-width: calc(100% - 20%); /* Ensure 10% gap on both sides */
                     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-                    margin-left: auto;
-                    margin-right: auto;
+                    border-radius: 10px;
+                    text-align: center;
                 }
 
                 .close {
@@ -176,6 +173,12 @@ function createDataTable() {
                   color: black;
                 }
 
+                /* Add or modify styles as needed */
+                .velotaxi-datatable tbody tr.claimed-by-you {
+                    background-color: #4CAF50 !important; /* Green background for claimed by you */
+                    color: white;
+                }
+
                 .velotaxi-datatable tbody tr.claimed-by-you {
                     background-color: #4CAF50 !important; /* Green background for claimed by you */
                     color: white;
@@ -193,21 +196,44 @@ function createDataTable() {
                 }
                 
                 .velotaxi-datatable tbody tr.active {
-                    background-color: #FF0000; /* Red background for claimed by others */
-                    color: white;
+                    background-color: #fff; /* Red background for claimed by others */
+                    color: black;
                 }
                 
-                .velotaxi-datatable tbody tr:nth-child(odd) {
+                /* .velotaxi-datatable tbody tr:nth-child(odd) {
                     background-color: #ddd; /* Gray background for unclaimed rows */
                 }
                 
                 .velotaxi-datatable tbody tr:nth-child(even) {
-                    background-color: #ffffff; /* White background for unclaimed rows */
-                }
+                    background-color: #fff; /* White background for unclaimed rows */
+                    color: black;
+                } */
 
             </style>';
 
         echo '<div id="alert-container"></div>';
+
+        // Modal HTML
+        echo '<div id="confirmRide" class="modal" style="display: none; position: fixed; z-index: 2; left: 50%; top: 50%; transform: translate(-50%, -50%);">
+        <div class="modal-content" style="border-radius: 10px; text-align: center; max-width: 400px; margin: 10% auto; padding: 20px; background-color: #fefefe; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);">
+            <span class="close" onclick="closeModal()" style="float: right; font-size: 20px; font-weight: bold; cursor: pointer;">&times;</span>
+            <h2 style="font-family: \'Arial\', sans-serif;">Claim Ride?</h2>
+            <div id="modal-content-details"></div>
+            
+            <label for="timeframe" style="font-family: \'Arial\', sans-serif; margin-top: 10px;">Select Timeframe:</label>
+            <select id="timeframe" name="timeframe" style="font-family: \'Arial\', sans-serif; padding: 8px; border-radius: 5px;">
+                <option value="5">5 min</option>
+                <option value="10">10 min</option>
+                <option value="15">15 min</option>
+                <option value="20">20 min</option>
+                <option value="30">30 min</option>
+            </select>
+            
+            <button id="claim-button" onclick="claimRide()" style="width: 100%; background-color: #4CAF50; color: white; border: none; padding: 10px; border-radius: 5px; font-family: \'Arial\', sans-serif; margin-top: 15px;">Claim</button>
+
+            <button id="unclaim-button" onclick="unclaimRide()" style="display: none; width: 100%; background-color: #FF0000; color: white; border: none; padding: 10px; border-radius: 5px; font-family: \'Arial\', sans-serif;">Unclaim</button>
+        </div>
+        </div>';
 
         // Start HTML for the datatable with added styles
         echo '<div class="velotaxi-datatable-container">
@@ -227,6 +253,12 @@ function createDataTable() {
         foreach ($data as $entry) {
             $response = json_decode($entry['response'], true);
 
+             // Determine if the row is claimed by the current user
+            $claimed_by_user = $entry['claimed_by'] == $user_id;
+                
+            // Set classes based on claimed status
+            $row_classes = $claimed_by_user ? 'claimed-by-you' : ($entry['claimed_by'] ? 'claimed-by-others' : 'unclaimed');
+
             $numeric_field = $response['input_text']; // Change this to the correct field
             $service_type = $response['service']; // Change this to the correct field
             $first_name = $response['names']['first_name']; // Change this to the correct field
@@ -244,30 +276,25 @@ function createDataTable() {
                 $address_2 = 'N/A';
             }
 
-            $message = $response['more_info']; // Change this to the correct field
+             // Check if 'more_info' key exists before accessing it
+            $message = isset($response['more_info']) ? $response['more_info'] : "";
 
-            // Display values in table rows
-            echo "<tr  data-details='" . esc_attr(json_encode($response)) . "'>
-                    <td class='service-col'>$service_type</td>
-                    <td class='name-col'>$first_name</td>
-                    <td class='pickup-col'>$address_1</td>
-                    <td class='destination-col'>$address_2</td>
-                    <td class='message-col'>$message</td>
-                </tr>";
+
+             // Pass the claimed status along with details when calling openModal
+            echo "<tr id='vt-row-test' class='" . esc_attr($row_classes) . "' data-details='" . esc_attr(json_encode($response)) . "' data-claimed='" . esc_attr($claimed_by_user ? 'true' : 'false') . "' entry ='" . esc_attr(json_encode($entry)) . "'>
+                <td class='service-col'>$service_type</td>
+                <td class='name-col'>$first_name</td>
+                <td class='pickup-col'>$address_1</td>
+                <td class='destination-col'>$address_2</td>
+                <td class='message-col'>$message</td>
+            </tr>";
         }
 
         // Close the table
         echo '</tbody></table></div>';
 
-        // Modal HTML
-        echo '<div id="confirmRide" class="modal">
-                <div class="modal-content">
-                    <span class="close" onclick="closeModal()">&times;</span>
-                    <h2>Claim Ride?</h2>
-                    <div id="modal-content-details"></div>
-                    <button id="claim-button" onclick="claimRide()">Claim</button>
-                </div>
-            </div>';
+
+
 
         return ob_get_clean(); // Return the buffered content
     }

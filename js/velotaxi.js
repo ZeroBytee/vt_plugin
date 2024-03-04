@@ -11,7 +11,11 @@ document.addEventListener('DOMContentLoaded', function () {
                 this.classList.add('active');
                 var details = JSON.parse(this.getAttribute('data-details'));
                 console.log('Clicked Row Data:', details);
-                openModal(details);
+
+                var claimedStatus = this.getAttribute('data-claimed');
+                var entry = JSON.parse(this.getAttribute('entry'));
+                console.log('claimed: ', claimedStatus)
+                openModal(details, claimedStatus, entry);
             } else {
                 console.error('Clicked row not found');
             }
@@ -19,15 +23,16 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 });
 
-function openModal(details) {
+function openModal(details, claimedStatus, entry) {
     var modal = document.getElementById('confirmRide');
     var modalContentDetails = document.getElementById('modal-content-details');
-    var buttonContentDetails = document.getElementById('claim-button');
+    var claimButton = document.getElementById('claim-button');
+    var unclaimButton = document.getElementById('unclaim-button');
 
     var phoneNumber = details['input_text'];
     var service = details['service'];
     var startingPlace = details['starting_place'] || details['from_place'];
-    var toPlace = details['to_place'] || "N/A"; // Default value for to_place
+    var toPlace = details['to_place'] || "N/A";
     var fromPlaceLabel = service === 'Reserve timeslot' ? 'Starting Place' : 'From Place';
 
     // Additional fields based on service type
@@ -44,10 +49,20 @@ function openModal(details) {
         '<p><strong>Service:</strong> ' + service + '</p>' +
         '<p><strong>' + fromPlaceLabel + ':</strong> ' + startingPlace + '</p>' +
         '<p><strong>To Place:</strong> ' + toPlace + '</p>' +
-        additionalFields +  // Additional fields based on service type
+        additionalFields +
         '<p><strong>Message:</strong> ' + details['more_info'] + '</p>';
 
-    buttonContentDetails.onclick = function() { claimRide(details) };
+    // Determine whether to show "Claim" or "Unclaim" button
+    if (claimedStatus === 'true' || claimedStatus === true) {
+        unclaimButton.style.display = 'block';
+        claimButton.style.display = 'none';
+    } else {
+        claimButton.style.display = 'block';
+        unclaimButton.style.display = 'none';
+    }
+
+    claimButton.onclick = function() { claimRide(details, entry) };
+    unclaimButton.onclick = function() { unclaimRide(details, entry) };
 
     modal.style.display = 'block';
 }
@@ -62,13 +77,16 @@ function showNotification(message, type = "success") {
     createAlert(message, type);
 }
 
-function claimRide(details) {
+function claimRide(details, entry) {
     var ajaxurl = claim_ride_vars.ajax_url;
+    var selectedTime = document.getElementById("timeframe").value;
 
     var data = {
         action: 'claimRide_callback',
         details: JSON.stringify(details),
         user: claim_ride_vars.user_id,
+        entry: entry,
+        time: selectedTime,
         nonce: claim_ride_vars.nonce
     };
 
@@ -85,6 +103,36 @@ function claimRide(details) {
         }
     });
 }
+
+function unclaimRide(details, entry) {
+    var ajaxurl = claim_ride_vars.ajax_url;
+
+    console.log(entry['id']);
+
+    var data = {
+        action: 'unclaimRide_callback',
+        details: JSON.stringify(details),
+        user: claim_ride_vars.user_id,
+        ride_id: entry['id'], // Pass the ride ID to the server
+        entry: JSON.stringify(entry), // full entry of the row
+        nonce: claim_ride_vars.nonce
+    };
+
+    jQuery.post(ajaxurl, data, function(response) {
+        //console.log(response);
+        //console.log('entry', entry)
+
+        if (response.success) {
+            closeModal();
+            createAlert("Successfully unclaimed the ride!", "success");
+            // Change the color of the claimed row back to original color
+            document.querySelector('.velotaxi-datatable tbody tr.active').classList.remove('claimed-by-you');
+        } else {
+            console.error(response.data['message']);
+        }
+    });
+}
+
 
 function createAlert(message, type) {
     // Create a new div element
