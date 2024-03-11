@@ -6,22 +6,15 @@ function claimRide_callback() {
         wp_send_json_error(array('message' => 'Invalid nonce.'));
     }
 
-    
+
     $details = json_decode(stripslashes($_POST['details']), true);
     $user_id = json_decode(stripslashes($_POST['user']), true);
     $time = stripslashes($_POST['time']);
 
     // Check if a row with the same user_id already exists
     if ($user_id) {
-        $row_exists = check_row_exists($user_id);
-        if ($row_exists) {
-            // Handle case where the row already exists
-            wp_send_json_error(array('message' => 'Ride not claimed. User already has a ride in progress.'));
-        } else {
-            
-            mark_ride_as_claimed($details, $user_id, $time);
-            wp_send_json_success(array('message' => 'Ride claimed successfully.' . $time));
-        }
+        mark_ride_as_claimed($details, $user_id, $time);
+        wp_send_json_success(array('message' => 'Ride claimed successfully.' . $time));
     }
 }
 
@@ -66,10 +59,15 @@ function check_row_exists($user_id) {
 }
 
 function unclaimRide_callback() {
+
     // Verify nonce
     if (!isset($_POST['nonce']) || !wp_verify_nonce($_POST['nonce'], 'claim_ride_nonce')) {
         wp_send_json_error(array('message' => 'Invalid nonce.'));
     }
+
+    $current_user = wp_get_current_user();
+    $user_id = $current_user->ID;
+    $is_admin = current_user_can('administrator'); 
 
     $details = json_decode(stripslashes($_POST['details']), true);
     $user_id = json_decode(stripslashes($_POST['user']), true);
@@ -80,7 +78,7 @@ function unclaimRide_callback() {
     if ($user_id) {
         $claimed_by_user = $entry['claimed_by'] == $user_id;
 
-        if ($claimed_by_user) {
+        if ($claimed_by_user || $is_admin) {
             // Unclaim the ride
             unclaim_ride($ride_id);
             wp_send_json_success(array('message' => 'Ride successfully unclaimed.'));
@@ -151,4 +149,52 @@ function move_row_to_rides_in_progress($details, $user) {
         array('%s') // Data format for the WHERE clause
     );
 }
+
+function fulfill_callback() {
+
+    global $wpdb;
+
+    // Verify nonce
+    if (!isset($_POST['nonce']) || !wp_verify_nonce($_POST['nonce'], 'claim_ride_nonce')) {
+        wp_send_json_error(array('message' => 'Invalid nonce.'));
+    }
+    
+    $entry = json_decode(stripslashes($_POST['entry']), true);
+
+    $destination_table = $wpdb->prefix . 'completed_rides';
+    $wpdb->insert($destination_table, $entry);
+}
+
+add_action('wp_ajax_fulfill_callback', 'fulfill_callback');
+
+function managerDeleteRide_callback() {
+
+    global $wpdb;
+
+    // Verify nonce
+    if (!isset($_POST['nonce']) || !wp_verify_nonce($_POST['nonce'], 'claim_ride_nonce')) {
+        wp_send_json_error(array('message' => 'Invalid nonce.'));
+    }
+
+    $current_user = wp_get_current_user();
+    $user_id = $current_user->ID;
+    $is_admin = current_user_can('administrator'); 
+
+    $ride_id = json_decode(stripslashes($_POST['ride_id']), true);
+    $details = json_decode(stripslashes($_POST['details']), true);
+
+    // Check if the ride is claimed by the current user
+    if ($is_admin && $ride_id) {
+        // delete from old table
+        $table_name = $wpdb->prefix . 'fluentform_submissions';
+        $wpdb->delete(
+            $table_name,
+            array(
+                'response' => json_encode($details),
+            ),
+            array('%s') // Data format for the WHERE clause
+        );
+    }
+}
+add_action('wp_ajax_managerDeleteRide_callback', 'managerDeleteRide_callback');
 

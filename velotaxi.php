@@ -2,7 +2,7 @@
 /**
  * Plugin Name: velotaxi
  * Description: A plugin designed for handling the backend of the Velotaxi website.
- * Version: 2.5.0
+ * Version: PRE-3.1.4
  * Author: Wout
  * Author URI: https://concept24.x10.mx/
  **/

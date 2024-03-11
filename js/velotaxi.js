@@ -14,8 +14,11 @@ document.addEventListener('DOMContentLoaded', function () {
 
                 var claimedStatus = this.getAttribute('data-claimed');
                 var entry = JSON.parse(this.getAttribute('entry'));
+                var driver = this.getAttribute('driver');
+                var admin = this.getAttribute('admin');
                 console.log('claimed: ', claimedStatus)
-                openModal(details, claimedStatus, entry);
+                console.log('admin: ', admin)
+                openModal(details, claimedStatus, entry, driver, admin);
             } else {
                 console.error('Clicked row not found');
             }
@@ -23,17 +26,27 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 });
 
-function openModal(details, claimedStatus, entry) {
+function openModal(details, claimedStatus, entry, driver, admin) {
     var modal = document.getElementById('confirmRide');
     var modalContentDetails = document.getElementById('modal-content-details');
+
+    // driver buttons
     var claimButton = document.getElementById('claim-button');
     var unclaimButton = document.getElementById('unclaim-button');
+    var fulfillButton = document.getElementById('fulfill-button');
+
+    // manager buttons
+    var manager_delete = document.getElementById('delete-button');
+    var manager_edit = document.getElementById('edit-button');
+    var manager_claim = document.getElementById('manager-claim-button');
+    var manager_unclaim = document.getElementById('manager-unclaim-button');
 
     var phoneNumber = details['input_text'];
     var service = details['service'];
     var startingPlace = details['starting_place'] || details['from_place'];
     var toPlace = details['to_place'] || "N/A";
     var fromPlaceLabel = service === 'Reserve timeslot' ? 'Starting Place' : 'From Place';
+    var when = details['when']
 
     // Additional fields based on service type
     var additionalFields = '';
@@ -42,6 +55,9 @@ function openModal(details, claimedStatus, entry) {
     } else if (service === 'Reserve timeslot') {
         additionalFields += '<p><strong>From Date:</strong> ' + details['from_date'] + '</p>' +
                             '<p><strong>To Date:</strong> ' + details['to_date'] + '</p>';
+    }
+    if (when == "Future") {
+        additionalFields += '<p><strong>Time:</strong> ' + details['when_time'] + '</p>';
     }
 
     modalContentDetails.innerHTML = 
@@ -53,16 +69,32 @@ function openModal(details, claimedStatus, entry) {
         '<p><strong>Message:</strong> ' + details['more_info'] + '</p>';
 
     // Determine whether to show "Claim" or "Unclaim" button
-    if (claimedStatus === 'true' || claimedStatus === true) {
-        unclaimButton.style.display = 'block';
-        claimButton.style.display = 'none';
-    } else {
-        claimButton.style.display = 'block';
-        unclaimButton.style.display = 'none';
-    }
+    
+    // enables admin buttons
+    if (admin) {
+        manager_delete.style.display = 'block';
+        manager_edit.style.display = 'block';
 
-    claimButton.onclick = function() { claimRide(details, entry) };
-    unclaimButton.onclick = function() { unclaimRide(details, entry) };
+        unclaimButton.style.display = 'block';
+        claimButton.style.display = 'block';
+        fulfillButton.style.display = 'block';
+    } else {
+        if (claimedStatus === 'true' || claimedStatus === true) {
+            unclaimButton.style.display = 'block';
+            claimButton.style.display = 'none';
+            fulfillButton.style.display = 'block';
+        } else {
+            unclaimButton.style.display = 'none';
+            claimButton.style.display = 'block';
+            fulfillButton.style.display = 'none';
+        }
+    }
+    
+    claimButton.onclick = function() { claimRide(details, entry, admin) };
+    unclaimButton.onclick = function() { unclaimRide(details, entry, admin) };
+    fulfillButton.onclick = function() {fulfillRide (entry)};
+
+    manager_delete.onclick = function() { deleteRide(details, admin)};
 
     modal.style.display = 'block';
 }
@@ -77,60 +109,100 @@ function showNotification(message, type = "success") {
     createAlert(message, type);
 }
 
-function claimRide(details, entry) {
+function claimRide(details, entry, admin) {
     var ajaxurl = claim_ride_vars.ajax_url;
     var selectedTime = document.getElementById("timeframe").value;
 
-    var data = {
-        action: 'claimRide_callback',
-        details: JSON.stringify(details),
-        user: claim_ride_vars.user_id,
-        entry: entry,
-        time: selectedTime,
-        nonce: claim_ride_vars.nonce
-    };
+    var claimed_by = entry['claimed_by']
 
-    jQuery.post(ajaxurl, data, function(response) {
-        console.log(response);
-
-        if (response.success) {
-            closeModal();
-            createAlert("Successfully claimed the ride!", "success");
-            // Change the color of the claimed row to green
-            document.querySelector('.velotaxi-datatable tbody tr.active').classList.add('claimed-by-you');
-        } else {
-            console.error(response.data['message']);
-        }
-    });
+    if (!claimed_by) {
+        var data = {
+            action: 'claimRide_callback',
+            details: JSON.stringify(details),
+            user: claim_ride_vars.user_id,
+            entry: entry,
+            time: selectedTime,
+            nonce: claim_ride_vars.nonce
+        };
+    
+        jQuery.post(ajaxurl, data, function(response) {
+            console.log(response);
+    
+            if (response.success) {
+                closeModal();
+                createAlert("Successfully claimed the ride!", "success");
+                // Change the color of the claimed row to green
+                document.querySelector('.velotaxi-datatable tbody tr.active').classList.add('claimed-by-you');
+            } else {
+                console.error(response.data['message']);
+            }
+        });
+    } else {
+        console.error('Ride already claimed by someone else');
+    } 
 }
 
-function unclaimRide(details, entry) {
+function unclaimRide(details, entry, admin) {
     var ajaxurl = claim_ride_vars.ajax_url;
 
-    console.log(entry['id']);
+    var claimed_by = entry['claimed_by'];
+    var user_id = claim_ride_vars.user_id;
 
-    var data = {
-        action: 'unclaimRide_callback',
-        details: JSON.stringify(details),
-        user: claim_ride_vars.user_id,
-        ride_id: entry['id'], // Pass the ride ID to the server
-        entry: JSON.stringify(entry), // full entry of the row
-        nonce: claim_ride_vars.nonce
-    };
+    if (claimed_by == user_id || admin) {
+        var data = {
+            action: 'unclaimRide_callback',
+            details: JSON.stringify(details),
+            user: user_id,
+            ride_id: entry['id'], // Pass the ride ID to the server
+            entry: JSON.stringify(entry), // full entry of the row
+            nonce: claim_ride_vars.nonce
+        };
+    
+        jQuery.post(ajaxurl, data, function(response) {
+            if (response.success) {
+                closeModal();
+                createAlert("Successfully unclaimed the ride!", "success");
+                // Change the color of the claimed row back to original color
+                document.querySelector('.velotaxi-datatable tbody tr.active').classList.remove('claimed-by-you');
+                document.querySelector('.velotaxi-datatable tbody tr.active').classList.remove('claimed-by-others');
+            } else {
+                console.error(response.data['message']);
+            }
+        });
+        closeModal();
+    } else {
+        console.error("You can't unclaim a ride of another driver!");
+        createAlert("Error with unclaiming the ride!", "error");
+    }    
+}
 
-    jQuery.post(ajaxurl, data, function(response) {
-        //console.log(response);
-        //console.log('entry', entry)
+function deleteRide(details, admin) {
+    var ajaxurl = claim_ride_vars.ajax_url;
 
-        if (response.success) {
-            closeModal();
-            createAlert("Successfully unclaimed the ride!", "success");
-            // Change the color of the claimed row back to original color
-            document.querySelector('.velotaxi-datatable tbody tr.active').classList.remove('claimed-by-you');
-        } else {
-            console.error(response.data['message']);
-        }
-    });
+    if (admin) {
+        var data = {
+            action: 'managerDeleteRide_callback',
+            details: JSON.stringify(details),
+            ride_id: entry['id'], // Pass the ride ID to the server
+            nonce: claim_ride_vars.nonce
+        };
+    
+        jQuery.post(ajaxurl, data, function(response) {
+            if (response.success) {
+                closeModal();
+                createAlert("Successfully removed the ride!", "success");
+                document.querySelector('.velotaxi-datatable tbody tr.active').style.display = 'none';
+            } else {
+                console.error(response.data['message']);
+            }
+        });
+        closeModal();
+    } else {
+        console.error("You are not allowed to do this!");
+        createAlert("You are not allowed to do this!", "error");
+    }
+
+    
 }
 
 
@@ -164,4 +236,29 @@ function closeAlert(closeButton) {
     setTimeout(function () {
       alertDiv.style.display = "none";
     }, 1000);
+}
+
+function fulfillRide(entry){
+    var ajaxurl = claim_ride_vars.ajax_url;
+
+    var data = {
+        action: 'fulfill_callback',
+        user: claim_ride_vars.user_id,
+        entry: JSON.stringify(entry),
+        nonce: claim_ride_vars.nonce
+    };
+
+    jQuery.post(ajaxurl, data, function(response) {
+        console.log(response);
+
+        if (response.success) {
+            closeModal();
+            createAlert("Successfully claimed the ride!", "success");
+            // Change the color of the claimed row to green
+            document.querySelector('.velotaxi-datatable tbody tr.active').classList.add('claimed-by-you');
+        } else {
+            console.error('Unknown error occurred.');
+            console.error(response);
+        }
+    });
 }
