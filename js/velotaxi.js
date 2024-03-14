@@ -26,6 +26,7 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 });
 
+// general driver modal
 function openModal(details, claimedStatus, entry, driver, admin) {
     var modal = document.getElementById('confirmRide');
     var modalContentDetails = document.getElementById('modal-content-details');
@@ -38,15 +39,18 @@ function openModal(details, claimedStatus, entry, driver, admin) {
     // manager buttons
     var manager_delete = document.getElementById('delete-button');
     var manager_edit = document.getElementById('edit-button');
-    var manager_claim = document.getElementById('manager-claim-button');
-    var manager_unclaim = document.getElementById('manager-unclaim-button');
 
     var phoneNumber = details['input_text'];
     var service = details['service'];
     var startingPlace = details['starting_place'] || details['from_place'];
+    var startingPlace2 = details['starting_place_2'];
     var toPlace = details['to_place'] || "N/A";
     var fromPlaceLabel = service === 'Reserve timeslot' ? 'Starting Place' : 'From Place';
     var when = details['when']
+
+    if (!startingPlace) {
+        startingPlace = startingPlace2;
+    }
 
     // Additional fields based on service type
     var additionalFields = '';
@@ -94,7 +98,8 @@ function openModal(details, claimedStatus, entry, driver, admin) {
     unclaimButton.onclick = function() { unclaimRide(details, entry, admin) };
     fulfillButton.onclick = function() {fulfillRide (entry)};
 
-    manager_delete.onclick = function() { deleteRide(details, admin)};
+    manager_delete.onclick = function() { deleteRide(details, entry, admin)};
+    manager_edit.onclick = function() { editRide(details)};
 
     modal.style.display = 'block';
 }
@@ -109,6 +114,41 @@ function showNotification(message, type = "success") {
     createAlert(message, type);
 }
 
+function createAlert(message, type) {
+    // Create a new div element
+    var alertDiv = document.createElement("div");
+  
+    // Set class based on the alert type (e.g., 'success', 'info', 'warning', 'error')
+    alertDiv.className = "alert " + type;
+  
+    // Set the alert message
+    alertDiv.innerHTML = '<span class="closebtn" onclick="closeAlert(this)">&times;</span>' + message;
+  
+    // Append the alert to the container
+    document.getElementById("alert-container").appendChild(alertDiv);
+  
+    // Automatically remove the alert after a few seconds (adjust as needed)
+    setTimeout(function () {
+      closeAlert(alertDiv.querySelector(".closebtn"));
+    }, 8000);
+}
+
+function closeAlert(closeButton) {
+    // Get the parent of <span class="closebtn"> (<div class="alert">)
+    var alertDiv = closeButton.parentElement;
+  
+    // Set the opacity of div to 0 (transparent)
+    alertDiv.style.opacity = "0";
+  
+    // Hide the div after 600ms (the same amount of milliseconds it takes to fade out)
+    setTimeout(function () {
+      alertDiv.style.display = "none";
+    }, 1000);
+}
+
+
+
+// driver operations
 function claimRide(details, entry, admin) {
     var ajaxurl = claim_ride_vars.ajax_url;
     var selectedTime = document.getElementById("timeframe").value;
@@ -176,89 +216,106 @@ function unclaimRide(details, entry, admin) {
     }    
 }
 
-function deleteRide(details, admin) {
+function fulfillRide(entry){
+    var ajaxurl = claim_ride_vars.ajax_url;
+
+    var claimed_by = entry['claimed_by'];
+    var user_id = claim_ride_vars.user_id;
+
+    if (claimed_by == user_id || admin) {
+        var data = {
+            action: 'fulfill_callback',
+            user: claim_ride_vars.user_id,
+            entry: JSON.stringify(entry),
+            nonce: claim_ride_vars.nonce
+        };
+    
+        jQuery.post(ajaxurl, data, function(response) {
+            console.log(response);
+    
+            if (response.success) {
+                closeModal();
+                createAlert("Successfully claimed the ride!", "success");
+                // Change the color of the claimed row to green
+                document.querySelector('.velotaxi-datatable tbody tr.active').classList.add('claimed-by-you');
+            } else {
+                console.error('Unknown error occurred.');
+                console.error(response);
+            }
+        });
+    }
+}
+
+
+// admin operations & modal
+function deleteRide(details, entry, admin) {
     var ajaxurl = claim_ride_vars.ajax_url;
 
     if (admin) {
         var data = {
             action: 'managerDeleteRide_callback',
             details: JSON.stringify(details),
-            ride_id: entry['id'], // Pass the ride ID to the server
+            ride_id: entry['id'], // Pass the ride ID to the server,
+            entry: entry,
             nonce: claim_ride_vars.nonce
         };
-    
+        
         jQuery.post(ajaxurl, data, function(response) {
+            console.log(response);
             if (response.success) {
                 closeModal();
                 createAlert("Successfully removed the ride!", "success");
-                document.querySelector('.velotaxi-datatable tbody tr.active').style.display = 'none';
+                //document.querySelector('.velotaxi-datatable tbody tr.active').style.display = 'none';
             } else {
-                console.error(response.data['message']);
+                console.error(response);
             }
         });
         closeModal();
     } else {
-        console.error("You are not allowed to do this!");
+        console.error("You are not allowed to do this!", response);
         createAlert("You are not allowed to do this!", "error");
+    } 
+}
+
+function editRide(details) {
+
+    // Create input fields for each variable in the response field
+    var adminEditForm = document.getElementById('admin-edit-form');
+    adminEditForm.innerHTML = ''; // Clear previous content
+
+    for (var key in details) {
+        if (details.hasOwnProperty(key)) {
+            var label = document.createElement('label');
+            label.innerHTML = key + ': ';
+
+            var input = document.createElement('input');
+            input.type = 'text';
+            input.name = key;
+            input.value = details[key];
+
+            adminEditForm.appendChild(label);
+            adminEditForm.appendChild(input);
+            adminEditForm.appendChild(document.createElement('br'));
+        }
     }
 
-    
+    // Display the admin edit modal
+    document.getElementById('adminEditModal').style.display = 'block';
 }
 
-
-function createAlert(message, type) {
-    // Create a new div element
-    var alertDiv = document.createElement("div");
-  
-    // Set class based on the alert type (e.g., 'success', 'info', 'warning', 'error')
-    alertDiv.className = "alert " + type;
-  
-    // Set the alert message
-    alertDiv.innerHTML = '<span class="closebtn" onclick="closeAlert(this)">&times;</span>' + message;
-  
-    // Append the alert to the container
-    document.getElementById("alert-container").appendChild(alertDiv);
-  
-    // Automatically remove the alert after a few seconds (adjust as needed)
-    setTimeout(function () {
-      closeAlert(alertDiv.querySelector(".closebtn"));
-    }, 8000);
+function closeAdminEditModal() {
+    // Close the admin edit modal
+    document.getElementById('adminEditModal').style.display = 'none';
 }
 
-function closeAlert(closeButton) {
-    // Get the parent of <span class="closebtn"> (<div class="alert">)
-    var alertDiv = closeButton.parentElement;
-  
-    // Set the opacity of div to 0 (transparent)
-    alertDiv.style.opacity = "0";
-  
-    // Hide the div after 600ms (the same amount of milliseconds it takes to fade out)
-    setTimeout(function () {
-      alertDiv.style.display = "none";
-    }, 1000);
-}
+function saveAdminEdit() {
+    // Get the modified data from the admin edit form
+    var adminEditForm = document.getElementById('admin-edit-form');
+    var formData = new FormData(adminEditForm);
 
-function fulfillRide(entry){
-    var ajaxurl = claim_ride_vars.ajax_url;
+    // Update the response in the database (you need to implement this part)
+    // Use AJAX or form submission to send formData to the server and update the database
 
-    var data = {
-        action: 'fulfill_callback',
-        user: claim_ride_vars.user_id,
-        entry: JSON.stringify(entry),
-        nonce: claim_ride_vars.nonce
-    };
-
-    jQuery.post(ajaxurl, data, function(response) {
-        console.log(response);
-
-        if (response.success) {
-            closeModal();
-            createAlert("Successfully claimed the ride!", "success");
-            // Change the color of the claimed row to green
-            document.querySelector('.velotaxi-datatable tbody tr.active').classList.add('claimed-by-you');
-        } else {
-            console.error('Unknown error occurred.');
-            console.error(response);
-        }
-    });
+    // Close the admin edit modal after saving changes
+    closeAdminEditModal();
 }
