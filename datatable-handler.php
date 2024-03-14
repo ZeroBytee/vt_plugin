@@ -381,20 +381,6 @@ function createCompletedTable() {
             .closebtn:hover {
               color: black;
             }
-            /* Add or modify styles as needed */
-            .velotaxi-datatable tbody tr.claimed-by-you {
-                background-color: #4CAF50 !important; /* Green background for claimed by you */
-                color: white;
-            }
-            .velotaxi-datatable tbody tr.claimed-by-you {
-                background-color: #82bb60 !important; /* Green background for claimed by you */
-                color: white;
-            }
-            
-            .velotaxi-datatable tbody tr.claimed-by-others {
-                background-color: #e74747 !important; /* Red background for claimed by others */
-                color: white;
-            }
             
             .velotaxi-datatable tbody tr.unclaimed {
                 /* Styles for unclaimed rows */
@@ -624,22 +610,7 @@ function createDeletedTable() {
             }
             .closebtn:hover {
               color: black;
-            }
-            /* Add or modify styles as needed */
-            .velotaxi-datatable tbody tr.claimed-by-you {
-                background-color: #4CAF50 !important; /* Green background for claimed by you */
-                color: white;
-            }
-            .velotaxi-datatable tbody tr.claimed-by-you {
-                background-color: #82bb60 !important; /* Green background for claimed by you */
-                color: white;
-            }
-            
-            .velotaxi-datatable tbody tr.claimed-by-others {
-                background-color: #e74747 !important; /* Red background for claimed by others */
-                color: white;
-            }
-            
+            }            
             .velotaxi-datatable tbody tr.unclaimed {
                 /* Styles for unclaimed rows */
                 background-color: #ddd; /* Default background color for unclaimed rows */
