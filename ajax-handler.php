@@ -199,27 +199,22 @@ function managerDeleteRide_callback() {
 
     // Check if the current user is an administrator
     if ($is_admin) {
-        $ride_id = json_decode(stripslashes($_POST['ride_id']), true);
-        $details = json_decode(stripslashes($_POST['details']), true);
-        $entry = json_decode(stripslashes($_POST['entry']), true);
+
+        $ride_id = stripslashes($_POST['ride_id']);
+        $entry = $_POST['entry'];
 
         // Delete the ride from the database
         $destination_table = $wpdb->prefix . 'deleted_rides';
         $wpdb->insert($destination_table, $entry);
 
         $table_name = $wpdb->prefix . 'fluentform_submissions';
-        $deleted = $wpdb->delete(
+        $wpdb->delete(
             $table_name,
             array('id' => $ride_id),
             array('%s') // Data format for the WHERE clause
         );
-        if ($deleted !== false) {
-            // Ride successfully deleted
-            wp_send_json_success(array('message' => 'Ride removed successfully.'));
-        } else {
-            // Error occurred while deleting ride
-            wp_send_json_error(array('message' => 'Error occurred while removing the ride.'));
-        }
+        wp_send_json_success(array('message' => 'Ride removed successfully.'));
+
     } else {
         // User is not an administrator
         wp_send_json_error(array('message' => 'You are not allowed to do this.'));

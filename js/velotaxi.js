@@ -255,8 +255,8 @@ function deleteRide(details, entry, admin) {
         var data = {
             action: 'managerDeleteRide_callback',
             details: JSON.stringify(details),
-            ride_id: entry['id'], // Pass the ride ID to the server,
             entry: entry,
+            ride_id: entry['id'], // Pass the ride ID to the server,
             nonce: claim_ride_vars.nonce
         };
         
