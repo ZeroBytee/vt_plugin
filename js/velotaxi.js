@@ -57,6 +57,7 @@ function openModal(details, claimedStatus, entry, driver, admin) {
     var email = details['email']
     var fname = details['names']['first_name']
     var lname = details['names']['last_name']
+    var tour = details['dropdown_1']
 
 
     if (!startingPlace) {
@@ -71,10 +72,22 @@ function openModal(details, claimedStatus, entry, driver, admin) {
     } else if (service === 'Reserve timeslot') {
         additionalFields += '<p><strong>From Date:</strong> ' + details['from_date'] + '</p>' +
                             '<p><strong>To Date:</strong> ' + details['to_date'] + '</p>';
+    } else if (service === 'Toeristische toer') {
+        additionalFields += '<p><strong>Tour:</strong> ' + wachttijd + '</p>';
     }
     if (when == "Future") {
         additionalFields += '<p><strong>Time:</strong> ' + details['when_time'] + '</p>';
         timeFrame.style.display = 'none';
+    }
+
+    if (tour == "The Classic Tour") {
+        additionalFields += '<p><strong>Hoelang:</strong> ' + details['time_tour_1'] + '</p>';
+    } else if (tour == "Inside The Vrijbroekpark") {
+        additionalFields += '<p><strong>Hoelang:</strong> ' + details['time_tour'] + '</p>';
+    } else if (tour == "Waterways Tour") {
+        additionalFields += '<p><strong>Hoelang:</strong> ' + details['time_tour_3'] + '</p>';
+    } else {
+        additionalFields += '<p><strong>Hoelang:</strong> 90 min </p>';
     }
 
     modalContentDetails.innerHTML = 
