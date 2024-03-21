@@ -74,20 +74,20 @@ function openModal(details, claimedStatus, entry, driver, admin) {
                             '<p><strong>To Date:</strong> ' + details['to_date'] + '</p>';
     } else if (service === 'Toeristische toer') {
         additionalFields += '<p><strong>Tour:</strong> ' + tour + '</p>';
+
+        if (tour == "The Classic Tour") {
+            additionalFields += '<p><strong>Hoelang:</strong> ' + details['time_tour_1'] + '</p>';
+        } else if (tour == "Inside The Vrijbroekpark") {
+            additionalFields += '<p><strong>Hoelang:</strong> ' + details['time_tour'] + '</p>';
+        } else if (tour == "Waterways Tour") {
+            additionalFields += '<p><strong>Hoelang:</strong> ' + details['time_tour_3'] + '</p>';
+        } else {
+            additionalFields += '<p><strong>Hoelang:</strong> 90 min </p>';
+        }
     }
     if (when == "Future") {
         additionalFields += '<p><strong>Time:</strong> ' + details['when_time'] + '</p>';
         timeFrame.style.display = 'none';
-    }
-
-    if (tour == "The Classic Tour") {
-        additionalFields += '<p><strong>Hoelang:</strong> ' + details['time_tour_1'] + '</p>';
-    } else if (tour == "Inside The Vrijbroekpark") {
-        additionalFields += '<p><strong>Hoelang:</strong> ' + details['time_tour'] + '</p>';
-    } else if (tour == "Waterways Tour") {
-        additionalFields += '<p><strong>Hoelang:</strong> ' + details['time_tour_3'] + '</p>';
-    } else {
-        additionalFields += '<p><strong>Hoelang:</strong> 90 min </p>';
     }
 
     modalContentDetails.innerHTML = 
