@@ -73,7 +73,7 @@ function openModal(details, claimedStatus, entry, driver, admin) {
         additionalFields += '<p><strong>From Date:</strong> ' + details['from_date'] + '</p>' +
                             '<p><strong>To Date:</strong> ' + details['to_date'] + '</p>';
     } else if (service === 'Toeristische toer') {
-        additionalFields += '<p><strong>Tour:</strong> ' + wachttijd + '</p>';
+        additionalFields += '<p><strong>Tour:</strong> ' + tour + '</p>';
     }
     if (when == "Future") {
         additionalFields += '<p><strong>Time:</strong> ' + details['when_time'] + '</p>';
