@@ -3,8 +3,7 @@
  * Plugin Name: velotaxi
  * Description: A plugin designed for handling the backend of the Velotaxi website.
  * Version: PRE-3.1.4
- * Author: Wout, Nils, Miro
- * Author URI: https://concept24.x10.mx/
+ * Author: Wout, Miro, Nils
  **/
 
 // Enqueue scripts and styles
@@ -111,8 +110,13 @@ function velotaxi_create_tables() {
         ) ENGINE=MyISAM DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_520_ci;";
 
         require_once(ABSPATH . 'wp-admin/includes/upgrade.php');
+
         dbDelta($sql);
     }
+
+    // Execute the SQL statement for altering table vt_fluentform_submissions
+    $alter_sql = "ALTER TABLE vt_fluentform_submissions ADD claimed_by INT NULL AFTER updated_at;";
+    $wpdb->query($alter_sql);
 }
 
 // Include the file containing the AJAX callback logic

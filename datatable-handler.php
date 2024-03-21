@@ -180,7 +180,7 @@ function createDataTable() {
         
         <button id="claim-button" onclick="claimRide()" style="width: 100%; background-color: #4CAF50; color: white; border: none; padding: 10px; border-radius: 5px; font-family: \'Arial\', sans-serif; margin-top: 15px;">Claim</button>
         <button id="unclaim-button" onclick="unclaimRide()" style="display: none; width: 100%; background-color: #FF0000; color: white; border: none; padding: 10px; margin-top: 10px; border-radius: 5px; font-family: \'Arial\', sans-serif;">Unclaim</button>
-        <button id="fulfill-button" onclick="fulfillRide()" style="display: none; width: 100%; background-color: #abef89; color: white; border: none; padding: 10px; margin-top: 10px; border-radius: 5px; font-family: \'Arial\', sans-serif;">I have fulfilled this request.</button>
+        <button id="fulfill-button" onclick="fulfillRide()" style="display: none; width: 100%; background-color: #75B842; color: white; border: none; padding: 10px; margin-top: 10px; border-radius: 5px; font-family: \'Arial\', sans-serif;">I have fulfilled this request.</button>
         <!-- manager buttons -->
         <hr id="manager-line" style="border: 1px solid #ddd; margin: 15px 0;">
 
