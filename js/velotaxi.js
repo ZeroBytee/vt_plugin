@@ -36,9 +36,15 @@ function openModal(details, claimedStatus, entry, driver, admin) {
     var unclaimButton = document.getElementById('unclaim-button');
     var fulfillButton = document.getElementById('fulfill-button');
 
+    var managerLine = document.getElementById('manager-line');
+    var managerText = document.getElementById('manager-text');
+
     // manager buttons
     var manager_delete = document.getElementById('delete-button');
     var manager_edit = document.getElementById('edit-button');
+
+    var timeFrame = document.getElementById('timeframe');
+
 
     var phoneNumber = details['input_text'];
     var service = details['service'];
@@ -47,6 +53,11 @@ function openModal(details, claimedStatus, entry, driver, admin) {
     var toPlace = details['to_place'] || "N/A";
     var fromPlaceLabel = service === 'Reserve timeslot' ? 'Starting Place' : 'From Place';
     var when = details['when']
+    var wachttijd = details['wacht_tijd']
+    var email = details['email']
+    var fname = details['names']['first_name']
+    var lname = details['names']['last_name']
+
 
     if (!startingPlace) {
         startingPlace = startingPlace2;
@@ -56,16 +67,20 @@ function openModal(details, claimedStatus, entry, driver, admin) {
     var additionalFields = '';
     if (service === 'Single City Ride') {
         additionalFields += '<p><strong>When:</strong> ' + details['when'] + '</p>';
+        additionalFields += '<p><strong>Wait time:</strong> ' + wachttijd + '</p>';
     } else if (service === 'Reserve timeslot') {
         additionalFields += '<p><strong>From Date:</strong> ' + details['from_date'] + '</p>' +
                             '<p><strong>To Date:</strong> ' + details['to_date'] + '</p>';
     }
     if (when == "Future") {
         additionalFields += '<p><strong>Time:</strong> ' + details['when_time'] + '</p>';
+        timeFrame.style.display = 'none';
     }
 
     modalContentDetails.innerHTML = 
+        '<p><strong>Name:</strong> ' + fname + ' ' + lname + '</p>' +
         '<p><strong>Phone Number:</strong> ' + phoneNumber + '</p>' +
+        '<p><strong>Email:</strong> ' + email + '</p>' +
         '<p><strong>Service:</strong> ' + service + '</p>' +
         '<p><strong>' + fromPlaceLabel + ':</strong> ' + startingPlace + '</p>' +
         '<p><strong>To Place:</strong> ' + toPlace + '</p>' +
@@ -75,22 +90,35 @@ function openModal(details, claimedStatus, entry, driver, admin) {
     // Determine whether to show "Claim" or "Unclaim" button
     
     // enables admin buttons
-    if (admin) {
+    if (admin == 'true') {
         manager_delete.style.display = 'block';
         manager_edit.style.display = 'block';
 
         unclaimButton.style.display = 'block';
         claimButton.style.display = 'block';
         fulfillButton.style.display = 'block';
+
+        managerLine.style.display = 'block';
+        managerText.style.display = 'block';
     } else {
         if (claimedStatus === 'true' || claimedStatus === true) {
             unclaimButton.style.display = 'block';
             claimButton.style.display = 'none';
             fulfillButton.style.display = 'block';
+            manager_delete.style.display = 'none';
+            manager_edit.style.display = 'none';
+
+            managerLine.style.display = 'none';
+            managerText.style.display = 'none';
         } else {
             unclaimButton.style.display = 'none';
             claimButton.style.display = 'block';
             fulfillButton.style.display = 'none';
+            manager_delete.style.display = 'none';
+            manager_edit.style.display = 'none';
+
+            managerLine.style.display = 'none';
+            managerText.style.display = 'none';
         }
     }
     
@@ -99,7 +127,7 @@ function openModal(details, claimedStatus, entry, driver, admin) {
     fulfillButton.onclick = function() {fulfillRide (entry)};
 
     manager_delete.onclick = function() { deleteRide(details, entry, admin)};
-    manager_edit.onclick = function() { editRide(details)};
+    manager_edit.onclick = function() { editRide(details, entry, admin)};
 
     modal.style.display = 'block';
 }
@@ -265,7 +293,7 @@ function deleteRide(details, entry, admin) {
             if (response.success) {
                 closeModal();
                 createAlert("Successfully removed the ride!", "success");
-                //document.querySelector('.velotaxi-datatable tbody tr.active').style.display = 'none';
+                document.querySelector('.velotaxi-datatable tbody tr.active').style.display = 'none';
             } else {
                 console.error(response);
             }
@@ -277,30 +305,34 @@ function deleteRide(details, entry, admin) {
     } 
 }
 
-function editRide(details) {
+function editRide(details, entry, admin) {
+    var modal = document.getElementById('adminEditModal');
+    var modalContent = modal.querySelector('.modal-content');
+    var adminEditForm = modal.getElementById('admin-edit-form');
+    var saveButton = modal.getElementById('save-admin-edit-button');
 
-    // Create input fields for each variable in the response field
-    var adminEditForm = document.getElementById('admin-edit-form');
-    adminEditForm.innerHTML = ''; // Clear previous content
+    // Clear previous content of the modal
+    adminEditForm.innerHTML = '';
 
+    // Populate the admin modal with input fields for each editable field
     for (var key in details) {
         if (details.hasOwnProperty(key)) {
-            var label = document.createElement('label');
-            label.innerHTML = key + ': ';
-
-            var input = document.createElement('input');
-            input.type = 'text';
-            input.name = key;
-            input.value = details[key];
-
-            adminEditForm.appendChild(label);
-            adminEditForm.appendChild(input);
-            adminEditForm.appendChild(document.createElement('br'));
+            var value = details[key];
+            // Check if the field is editable
+            if (key !== '__fluent_form_embded_post_id' && key !== '_fluentform_7_fluentformnonce' && key !== '_wp_http_referer') {
+                adminEditForm.innerHTML += '<label for="' + key + '">' + key + ':</label>';
+                adminEditForm.innerHTML += '<input type="text" id="' + key + '" name="' + key + '" value="' + value + '"><br>';
+            }
         }
     }
 
-    // Display the admin edit modal
-    document.getElementById('adminEditModal').style.display = 'block';
+    // Show the admin modal
+    modal.style.display = 'block';
+
+    // Add event listener to the Save Changes button
+    saveButton.addEventListener('click', function() {
+        saveAdminEdit(entry, admin);
+    });
 }
 
 function closeAdminEditModal() {
@@ -308,14 +340,29 @@ function closeAdminEditModal() {
     document.getElementById('adminEditModal').style.display = 'none';
 }
 
-function saveAdminEdit() {
-    // Get the modified data from the admin edit form
-    var adminEditForm = document.getElementById('admin-edit-form');
+function saveAdminEdit(entry, admin) {
+    var modal = document.getElementById('adminEditModal');
+    var adminEditForm = modal.querySelector('#admin-edit-form');
     var formData = new FormData(adminEditForm);
 
-    // Update the response in the database (you need to implement this part)
-    // Use AJAX or form submission to send formData to the server and update the database
+    var ajaxurl = claim_ride_vars.ajax_url;
 
-    // Close the admin edit modal after saving changes
-    closeAdminEditModal();
+    var data = {
+        action: 'managerEditRide_callback',
+        formData: formData,
+        ride_id: entry['id'], // Pass the ride ID to the server,
+    };
+
+    jQuery.post(ajaxurl, data, function(response) {
+        console.log(response);
+        if (response.success) {
+            closeModal(); // Close the admin modal
+            showNotification("Changes saved successfully", "success");
+            // Update the row with new data (if necessary)
+            // You may need to implement this based on your specific table structure
+        } else {
+            console.error(response);
+            showNotification("Error: " + response, "error");
+        }
+    });
 }

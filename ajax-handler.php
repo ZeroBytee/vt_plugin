@@ -18,6 +18,8 @@ function claimRide_callback() {
     }
 }
 
+add_action('wp_ajax_claimRide_callback', 'claimRide_callback');
+
 function mark_ride_as_claimed($details, $user, $time) {
     global $wpdb;
 
@@ -88,7 +90,9 @@ function unclaimRide_callback() {
         }
     }
 }
-add_action('wp_ajax_claimRide_callback', 'claimRide_callback');
+
+add_action('wp_ajax_unclaimRide_callback', 'unclaimRide_callback');
+
 
 function unclaim_ride($ride_id) {
     global $wpdb;
@@ -104,51 +108,6 @@ function unclaim_ride($ride_id) {
     );
 }
 
-add_action('wp_ajax_unclaimRide_callback', 'unclaimRide_callback');
-
-
-
-
-function move_row_to_rides_in_progress($details, $user) {
-    global $wpdb;
-
-    // Extract relevant data from $details (adjust based on your actual data structure)
-    $phone = isset($details['input_text']) ? $details['input_text'] : '';
-    $from = isset($details['from_place']) ? $details['from_place'] : '';
-    $to = isset($details['to_place']) ? $details['to_place'] : '';
-    $message = isset($details['more_info']) ? $details['more_info'] : '';
-
-    // Additional fields based on service type
-    $when = isset($details['when']) ? $details['when'] : '';
-    $from_date = isset($details['from_date']) ? $details['from_date'] : '';
-    $to_date = isset($details['to_date']) ? $details['to_date'] : '';
-    
-    // Prepare data for insertion
-    $insert_data = array(
-        'phone' => $phone,
-        'from' => $from,
-        'to' => $to,
-        'message' => $message,
-        'when' => $when,
-        'from_date' => $from_date,
-        'to_date' => $to_date,
-        'user_id' => $user,
-    );
-
-    // insert into new table
-    $destination_table = $wpdb->prefix . 'rides_in_progress';
-    $wpdb->insert($destination_table, $insert_data);
-
-    // delete from old table
-    $table_name = $wpdb->prefix . 'fluentform_submissions';
-    $wpdb->delete(
-        $table_name,
-        array(
-            'response' => json_encode($details),
-        ),
-        array('%s') // Data format for the WHERE clause
-    );
-}
 
 function fulfill_callback() {
     global $wpdb;
@@ -159,7 +118,6 @@ function fulfill_callback() {
     }
     
     $entry = json_decode(stripslashes($_POST['entry']), true);
-
 
     $destination_table = $wpdb->prefix . 'completed_rides';
     if ($wpdb->insert($destination_table, $entry)) {

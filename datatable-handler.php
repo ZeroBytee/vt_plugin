@@ -12,7 +12,7 @@ function createDataTable() {
     $table_name = $wpdb->prefix . 'fluentform_submissions';
     // Get data from the database
     $data = $wpdb->get_results(
-        $wpdb->prepare("SELECT * FROM $table_name WHERE form_id = %d", 6),
+        $wpdb->prepare("SELECT * FROM $table_name WHERE form_id = %d ORDER BY id DESC", 3),
         ARRAY_A
     );
     // Start output buffering
@@ -182,9 +182,9 @@ function createDataTable() {
         <button id="unclaim-button" onclick="unclaimRide()" style="display: none; width: 100%; background-color: #FF0000; color: white; border: none; padding: 10px; margin-top: 10px; border-radius: 5px; font-family: \'Arial\', sans-serif;">Unclaim</button>
         <button id="fulfill-button" onclick="fulfillRide()" style="display: none; width: 100%; background-color: #abef89; color: white; border: none; padding: 10px; margin-top: 10px; border-radius: 5px; font-family: \'Arial\', sans-serif;">I have fulfilled this request.</button>
         <!-- manager buttons -->
-        <hr style="border: 1px solid #ddd; margin: 15px 0;">
+        <hr id="manager-line" style="border: 1px solid #ddd; margin: 15px 0;">
 
-        <h3 style="font-family: \'Arial\', sans-serif; color: #333;">Manager Buttons</h3>
+        <h3 id="manager-text" style="font-family: \'Arial\', sans-serif; color: #333;">Manager Buttons</h3>
         <button id="delete-button" onclick="deleteRide()" style="display: none; width: 100%; background-color: #FF0000; color: white; border: none; padding: 10px; margin-top: 10px; border-radius: 5px; font-family: \'Arial\', sans-serif;">Delete</button>
         <button id="edit-button" onclick="editRide()" style="display: none; width: 100%; background-color: #3498db; color: white; border: none; padding: 10px; margin-top: 10px; border-radius: 5px; font-family: \'Arial\', sans-serif;">Edit</button>
     </div>
@@ -195,7 +195,7 @@ function createDataTable() {
     <div class="modal-content" style="border-radius: 10px; text-align: center; max-width: 600px; margin: 10% auto; padding: 20px; background-color: #fefefe; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);">
         <span class="close" onclick="closeAdminEditModal()" style="float: right; font-size: 20px; font-weight: bold; cursor: pointer;">&times;</span>
         <h2 style="font-family: \'Arial\', sans-serif;">Edit Ride Details</h2>
-        <div id="admin-edit-form"></div>
+        <form id="admin-edit-form"></form>
         <button id="save-admin-edit-button" onclick="saveEdit()">Save Changes</button>
     </div>
     </div>';
@@ -230,6 +230,12 @@ function createDataTable() {
             $address_1 = isset($response['from_place']) ? $response['from_place'] : ''; // Check if 'from_place' exists
             $address_2 = isset($response['to_place']) ? $response['to_place'] : ''; // Check if 'to_place' exists
         } elseif ($service_type === "Reserve timeslot") {
+            $address_1 = isset($response['starting_place']) ? $response['starting_place'] : 'N/A'; // Check if 'starting_place' exists
+            $address_2 = 'N/A';
+        } elseif ($service_type === "Toeristische toer") {
+            $address_1 = isset($response['starting_place_tour']) ? $response['starting_place_tour'] : 'N/A'; // Check if 'starting_place' exists
+            $address_2 = 'N/A';
+        } elseif ($service_type === "Tijdslot") {
             $address_1 = isset($response['starting_place']) ? $response['starting_place'] : 'N/A'; // Check if 'starting_place' exists
             $address_2 = 'N/A';
         } else {
@@ -268,10 +274,10 @@ function createCompletedTable() {
     $table_name = $wpdb->prefix . 'completed_rides';
     // Get data from the database
     $data = $wpdb->get_results(
-        $wpdb->prepare("SELECT * FROM $table_name WHERE form_id = %d", 6),
+        $wpdb->prepare("SELECT * FROM $table_name WHERE form_id = %d ORDER BY id DESC", 3),
         ARRAY_A
     );
-    
+
     foreach ($data as &$entry) {
         foreach ($entry as $key => &$value) {
             if (is_string($value)) {
@@ -460,9 +466,9 @@ function createCompletedTable() {
             
         // Set classes based on claimed status
         $row_classes = $claimed_by_user ? 'claimed-by-you' : ($entry['claimed_by'] ? 'claimed-by-others' : 'unclaimed');
-        $numeric_field = $response['input_text']; // Change this to the correct field
-        $service_type = $response['service']; // Change this to the correct field
-        $first_name = $response['names']['first_name']; // Change this to the correct field
+        $numeric_field = $response['input_text'];
+        $service_type = $response['service'];
+        $first_name = $response['names']['first_name'];
         // Determine from and to places based on service type
         if ($service_type === "Single City Ride") {
             $address_1 = isset($response['from_place']) ? $response['from_place'] : ''; // Check if 'from_place' exists
@@ -506,7 +512,7 @@ function createDeletedTable() {
     $table_name = $wpdb->prefix . 'deleted_rides';
     // Get data from the database
     $data = $wpdb->get_results(
-        $wpdb->prepare("SELECT * FROM $table_name WHERE form_id = %d", 6),
+        $wpdb->prepare("SELECT * FROM $table_name WHERE form_id = %d ORDER BY id DESC", 3),
         ARRAY_A
     );
 
@@ -639,7 +645,7 @@ function createDeletedTable() {
             }
             
             /* .velotaxi-datatable tbody tr:nth-child(odd) {
-                background-color: #ddd; /* Gray background for unclaimed rows */
+                background-color: #fff; /* Gray background for unclaimed rows */
             }
             
             .velotaxi-datatable tbody tr:nth-child(even) {
